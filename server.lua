@@ -1,4 +1,13 @@
-function bltkbanlistregenerator()
+local function split(aB, aC)
+	local splitted = {}
+	for str in string.gmatch(aB, "([^" .. aC .. "]+)") do
+		table.insert(splitted, str)
+	end
+
+	return splitted
+end
+
+local function bltkbanlistregenerator()
 	local o = LoadResourceFile(GetCurrentResourceName(), "bans.json")
 	if not o or o == "" or not json.decode(o) then
 		SaveResourceFile(GetCurrentResourceName(), "bans.json", "[]", -1)
@@ -6,9 +15,9 @@ function bltkbanlistregenerator()
 end
 bltkbanlistregenerator()
 
-function bltkBan(source)
+local function bltkBan(source)
 	local o = LoadResourceFile(GetCurrentResourceName(), "bans.json")
-	if o ~= nil then
+	if o then
 		local q = json.decode(o)
 		if type(q) == "table" then
 			table.insert(q, GetPlayerIdentifiers(source))
@@ -22,89 +31,7 @@ function bltkBan(source)
 	end
 end
 
-local function V(Q, W, X)
-	local Y = GetPlayerIdentifiers(source)
-	local v = false
-	local A = tostring(GetPlayerEndpoint(source))
-	local o = LoadResourceFile(GetCurrentResourceName(), "bans.json")
-	if o ~= nil then
-		local p = json.decode(o)
-		if type(p) == "table" then
-			for _, a0 in ipairs(GetPlayerIdentifiers(source)) do
-				for m, n in ipairs(p) do
-					for a5, a6 in ipairs(n) do
-						if a6 == a0 or n == a0 then
-							v = true
-							break
-						end
-					end
-					if v then
-						break
-					end
-				end
-				if v then
-					break
-				end
-			end
-			if v then
-				--bltkBan(source)
-				X.done(ServerConfig.KickMessage)
-				return
-			end
-		else
-			bltkbanlistregenerator()
-		end
-	else
-		bltkbanlistregenerator()
-	end
-end
-
-AddEventHandler("playerConnecting", V)
-
-function sendToDiscord(color, name, message, footer)
-	local embed = {
-		{
-			["color"] = color,
-			["title"] = "**" .. name .. "**",
-			["description"] = message,
-			["footer"] = {
-				["text"] = footer,
-			},
-		},
-	}
-
-	PerformHttpRequest(
-		webhooks.Log,
-		function(err, text, headers) end,
-		"POST",
-		json.encode({ username = name, embeds = embed }),
-		{ ["Content-Type"] = "application/json" }
-	)
-end
-function sendToDiscordSS(sslink, color, name, message, footer)
-	local embed = {
-		{
-			["color"] = color,
-			["title"] = "**" .. name .. "**",
-			["description"] = message,
-			["footer"] = {
-				["text"] = footer,
-			},
-			["image"] = {
-				["url"] = sslink,
-			},
-		},
-	}
-
-	PerformHttpRequest(
-		webhooks.Log,
-		function(err, text, headers) end,
-		"POST",
-		json.encode({ username = name, embeds = embed }),
-		{ ["Content-Type"] = "application/json" }
-	)
-end
-function ExtractIdentifiers(src)
+local function extractIdentifiers(src)
 	local identifiers = {
 		steam = "Unknown",
 		ip = "Unknown",
@@ -122,19 +49,159 @@ function ExtractIdentifiers(src)
 	return identifiers
 end
 
+local function triggerDiscordWebhook(color, name, message, footer)
+	local embed = {
+		{
+			["color"] = color,
+			["title"] = "**" .. name .. "**",
+			["description"] = message,
+			["footer"] = {
+				["text"] = footer,
+			},
+		},
+	}
+
+	PerformHttpRequest(
+		webhooks.Log,
+		function(err, text, headers) end,
+		"POST",
+		json.encode({ username = name, embeds = embed }),
+		{ ["Content-Type"] = "application/json" }
+	)
+end
+
+local function BLTKACDETECT(source, mreason, description, kickstatus, banstatus)
+	if ServerConfig.DebugMode then
+		local ids = extractIdentifiers(source)
+		triggerDiscordWebhook(
+			7143168,
+			"(DEBUG MODE)User detect - " .. mreason,
+			"**ID:** "
+				.. source
+				.. "\n**Name:** "
+				.. GetPlayerName(source)
+				.. "\n**Steam Hex** "
+				.. ids.steam
+				.. "\n**Discord ID** "
+				.. ids.discord
+				.. "\n**Rockstar License** "
+				.. ids.license
+				.. "\n**Xbox Live** "
+				.. ids.live
+				.. "\n**Xbox Microsoft** "
+				.. ids.xbl
+				.. "\n\n**Reason:** "
+				.. description,
+			"BLTK AntiCheat"
+		)
+	else
+		if not IsPlayerAceAllowed(source, "bltk-ac.bypass") then
+			TriggerClientEvent("bltkac-admin:screenshot:requested", source, webhooks.ScreenShotStorage)
+			Wait(1000)
+			local ids = extractIdentifiers(source)
+			if banstatus then
+				bltkBan(source)
+			end
+			triggerDiscordWebhook(
+				7143168,
+				"User detect - " .. mreason,
+				"**ID:** "
+					.. source
+					.. "\n**Name:** "
+					.. GetPlayerName(source)
+					.. "\n**Steam Hex** "
+					.. ids.steam
+					.. "\n**Discord ID** "
+					.. ids.discord
+					.. "\n**Rockstar License** "
+					.. ids.license
+					.. "\n**Xbox Live** "
+					.. ids.live
+					.. "\n**Xbox Microsoft** "
+					.. ids.xbl
+					.. "\n\n**Reason:** "
+					.. description,
+				"BLTK AntiCheat"
+			)
+			if kickstatus then
+				DropPlayer(source, ServerConfig.KickMessage..mreason)
+			end
+		end
+	end
+end
+
+local function V(_, _, X)
+	local v = false
+	local o = LoadResourceFile(GetCurrentResourceName(), "bans.json")
+	if o then
+		local p = json.decode(o)
+		if type(p) == "table" then
+			for _,a0 in ipairs(GetPlayerIdentifiers(source)) do
+				for _,n in ipairs(p) do
+					for _,a6 in ipairs(n) do
+						if a6 == a0 or n == a0 then
+							v = true
+							break
+						end
+					end
+				end
+			end
+			if v then
+				X.done(ServerConfig.BanMessage)
+				return
+			end
+		else
+			bltkbanlistregenerator()
+		end
+	else
+		bltkbanlistregenerator()
+	end
+end
+
+AddEventHandler("playerConnecting", V)
+
+local function sendToDiscordSS(sslink, color, name, message, footer)
+	local embed = {
+		{
+			["color"] = color,
+			["title"] = "**" .. name .. "**",
+			["description"] = message,
+			["footer"] = {
+			    ["text"] = footer,
+			},
+			["image"] = {
+				["url"] = sslink,
+			},
+		},
+	}
+
+	PerformHttpRequest(
+		webhooks.Log,
+		function(err, text, headers) end,
+		"POST",
+		json.encode({ username = name, embeds = embed }),
+		{ ["Content-Type"] = "application/json" }
+	)
+end
+
 RegisterNetEvent("bltkac_antiloadfromshits", function(res)
-	if GetReourceState(res) == "missing" then
-		BLTKACDETECT(source, "Entity Spawn Unknown Resource", "Prop spawned with an executor, in an unknown resource (probably eulen). Entity spawner resource: `"..res.."`", ClientConfig.AntiSpawnKick, ClientConfig.AntiSpawnBan)
+   if res ~= "nil" then
+   return
+   end
+	if res ~= "missing" then
+		if GetResourceState(res) == "missing" then
+			BLTKACDETECT(source, "Entity Spawn Unknown Resource", "Prop spawned with an executor, in an unknown resource (probably eulen). Entity spawner resource: `"..res.."`", ClientConfig.AntiSpawnKick, ClientConfig.AntiSpawnBan)
+		end
 	end
 end)
 
 if ServerConfig then
 	local surprise = [[
-        ____  _   _______ _  __           _   _ _______ _____ _____ _    _ ______       _______ 
+        ____  _   _______ _  __           _   _ _______ _____ ______  _  _  _______      ________
         |  _ \| | |__   __| |/ /     /\   | \ | |__   __|_   _/ ____| |  | |  ____|   /\|__   __|
-        | |_) | |    | |  | ' /     /  \  |  \| |  | |    | || |    | |__| | |__     /  \  | |   
-        |  _ <| |    | |  |  <     / /\ \ | . ` |  | |    | || |    |  __  |  __|   / /\ \ | |   
-        | |_) | |____| |  | . \   / ____ \| |\  |  | |   _| || |____| |  | | |____ / ____ \| |   
+        | |_) | |    | |  | ' /     /  \  |  \| |  | |    | || |    | |__| | |__     /  \  | |
+        |  _ <| |    | |  |  <     / /\ \ | . ` |  | |    | || |    |  __  |  __|   / /\ \ | |
+        | |_) | |____| |  | . \   / ____ \| |\  |  | |   _| || |____| |  | | |____ / ____ \| |
         |____/|______|_|  |_|\_\ /_/    \_\_| \_|  |_|  |_____\_____|_|  |_|______/_/    \_\_|
     ]]
 	print(surprise)
@@ -163,11 +230,13 @@ CreateThread(function()
 	end
 end)
 
-RegisterNetEvent("bltkac_detection")
-AddEventHandler("bltkac_detection", function(mreason, description, kickstatus, banstatus)
+RegisterNetEvent("bltk_anticheat:server:detection_ai")
+AddEventHandler("bltk_anticheat:server:detection_ai", function(mreason, description, kickstatus, banstatus)
+	local source = source
+	if not description then description = "Unknown" end
 	if ServerConfig.DebugMode then
-		local ids = ExtractIdentifiers(source)
-		sendToDiscord(
+		local ids = extractIdentifiers(source)
+		triggerDiscordWebhook(
 			7143168,
 			"(DEBUG MODE)User detect - " .. mreason,
 			"**ID:** "
@@ -190,11 +259,14 @@ AddEventHandler("bltkac_detection", function(mreason, description, kickstatus, b
 		)
 	else
 		if not IsPlayerAceAllowed(source, "bltk-ac.bypass") then
-			local ids = ExtractIdentifiers(source)
+			TriggerClientEvent("bltkac-admin:screenshot:requested", source, webhooks.ScreenShotStorage)
+			Wait(1000)
+			local ids = extractIdentifiers(source)
 			if banstatus then
 				bltkBan(source)
 			end
-			sendToDiscord(
+			if not description then description = "Unknown" end
+			triggerDiscordWebhook(
 				7143168,
 				"User detect - " .. mreason,
 				"**ID:** "
@@ -216,18 +288,18 @@ AddEventHandler("bltkac_detection", function(mreason, description, kickstatus, b
 				"BLTK AntiCheat"
 			)
 			if kickstatus then
-				--DropPlayer(source, ServerConfig.KickMessage)
+				DropPlayer(source, ServerConfig.KickMessage..mreason)
 			end
 		end
 	end
 end)
 
-RegisterNetEvent("bltkac_detection_ai")
-AddEventHandler("bltkac_detection_ai", function(ssurl, mreason, description, kickstatus, banstatus)
-	print(ssurl)
+RegisterNetEvent("bltk_anticheat:server:detection")
+AddEventHandler("bltk_anticheat:server:detection", function(mreason, description, kickstatus, banstatus)
+	local source = source
 	if ServerConfig.DebugMode then
-		local ids = ExtractIdentifiers(source)
-		sendToDiscord(
+		local ids = extractIdentifiers(source)
+		triggerDiscordWebhook(
 			7143168,
 			"(DEBUG MODE)User detect - " .. mreason,
 			"**ID:** "
@@ -250,11 +322,14 @@ AddEventHandler("bltkac_detection_ai", function(ssurl, mreason, description, kic
 		)
 	else
 		if not IsPlayerAceAllowed(source, "bltk-ac.bypass") then
-			local ids = ExtractIdentifiers(source)
+			TriggerClientEvent("bltkac-admin:screenshot:requested", source, webhooks.ScreenShotStorage)
+			Wait(1500)
 			if banstatus then
 				bltkBan(source)
 			end
-			sendToDiscord(
+			local ids = extractIdentifiers(source)
+            if not description then description = "Unknown" end
+			triggerDiscordWebhook(
 				7143168,
 				"User detect - " .. mreason,
 				"**ID:** "
@@ -276,73 +351,15 @@ AddEventHandler("bltkac_detection_ai", function(ssurl, mreason, description, kic
 				"BLTK AntiCheat"
 			)
 			if kickstatus then
-				--DropPlayer(source, ServerConfig.KickMessage)
+				DropPlayer(source, ServerConfig.KickMessage..mreason)
 			end
 		end
 	end
 end)
-
-function BLTKACDETECT(source, mreason, description, kickstatus, banstatus)
-	if ServerConfig.DebugMode then
-		local ids = ExtractIdentifiers(source)
-		sendToDiscord(
-			7143168,
-			"(DEBUG MODE)User detect - " .. mreason,
-			"**ID:** "
-				.. source
-				.. "\n**Name:** "
-				.. GetPlayerName(source)
-				.. "\n**Steam Hex** "
-				.. ids.steam
-				.. "\n**Discord ID** "
-				.. ids.discord
-				.. "\n**Rockstar License** "
-				.. ids.license
-				.. "\n**Xbox Live** "
-				.. ids.live
-				.. "\n**Xbox Microsoft** "
-				.. ids.xbl
-				.. "\n\n**Reason:** "
-				.. description,
-			"BLTK AntiCheat"
-		)
-	else
-		if not IsPlayerAceAllowed(source, "bltk-ac.bypass") then
-			local ids = ExtractIdentifiers(source)
-			if banstatus then
-				bltkBan(source)
-			end
-			sendToDiscord(
-				7143168,
-				"User detect - " .. mreason,
-				"**ID:** "
-					.. source
-					.. "\n**Name:** "
-					.. GetPlayerName(source)
-					.. "\n**Steam Hex** "
-					.. ids.steam
-					.. "\n**Discord ID** "
-					.. ids.discord
-					.. "\n**Rockstar License** "
-					.. ids.license
-					.. "\n**Xbox Live** "
-					.. ids.live
-					.. "\n**Xbox Microsoft** "
-					.. ids.xbl
-					.. "\n\n**Reason:** "
-					.. description,
-				"BLTK AntiCheat"
-			)
-			if kickstatus then
-				--DropPlayer(source, ServerConfig.KickMessage)
-			end
-		end
-	end
-end
 
 if ServerConfig.UsernameBlacklist then
-	AddEventHandler("playerConnecting", function(AWDGAXSUDGYWA5SRD, AHSD, AHSDYASUGD)
-		for i, v in pairs(ServerConfig.BlacklistedUsernames) do
+	AddEventHandler("playerConnecting", function(AWDGAXSUDGYWA5SRD, _, AHSDYASUGD)
+		for _, v in pairs(ServerConfig.BlacklistedUsernames) do
 			if string.find(AWDGAXSUDGYWA5SRD, v) then
 				AHSDYASUGD.done(ServerConfig.UsernameBlacklistKickReason)
 			end
@@ -386,9 +403,9 @@ end
 
 if ServerConfig.ParticleFX then
 	if ServerConfig.ParticleFXSpamDetecter then
-		AddEventHandler("ptFxEvent", function(__source, data)
+		AddEventHandler("ptFxEvent", function(__source, _)
 			particlesSpawned[__source] = (particlesSpawned[__source] or 0) + 1
-			if particlesSpawned[__source] > ServerConfig.ParticleFXSpamDetecterMaxFX then
+			if particlesSpawned[__source] >= ServerConfig.ParticleFXSpamDetecterMaxFX then
 				BLTKACDETECT(
 					__source,
 					"[ANTINUKE] ParticleFX Spam",
@@ -402,7 +419,7 @@ if ServerConfig.ParticleFX then
 end
 
 if ServerConfig.ChatController then
-	AddEventHandler("chatMessage", function(source, name, message)
+	AddEventHandler("chatMessage", function(source, _, message)
 		if ServerConfig.ChatAntiSpam then
 			chatBeforeBlock[source] = (chatBeforeBlock[source] or 0) + 1
 			if chatBeforeBlock[source] > ServerConfig.MaxMessageSpam then
@@ -417,16 +434,18 @@ if ServerConfig.ChatController then
 			end
 		end
 		if ServerConfig.ChatBlacklistedWord then
-			for i, v in pairs(ServerConfig.BlacklistedWords) do
-				if string.find(message, v) then
+			for v in ipairs(ServerConfig.BlacklistedWords) do
+				--if string.find(message, v) then
+				if string.match(string.lower(message), string.lower(ServerConfig.BlacklistedWords[v])) then
 					BLTKACDETECT(
 						source,
 						"Blacklisted word",
-						"This player tried to say a blacklisted word.\n**Word:** `" .. v .. "`",
+						"This player tried to say a blacklisted word.\n**Word:** `" .. ServerConfig.BlacklistedWords[v] .. "`",
 						ServerConfig.ChatBlacklistedWordKick,
 						ServerConfig.ChatBlacklistedWordBan
 					)
 					CancelEvent()
+					print("Blacklisted word "..message, ServerConfig.BlacklistedWords[v])
 				end
 			end
 		end
@@ -434,15 +453,15 @@ if ServerConfig.ChatController then
 end
 
 if ServerConfig.BlacklistedEventsSystem then
-	for k, events in pairs(ServerConfig.BlacklistedEvents) do
-		RegisterServerEvent(events)
+	for _, events in pairs(ServerConfig.BlacklistedEvents) do
+		RegisterNetEvent(events)
 		AddEventHandler(events, function()
 			BLTKACDETECT(
 				source,
 				"Event Executor",
 				"This player tried to execute a blacklisted event.\n**Executed event:** `" .. events .. "`",
-				ServerConfig.ChatBlacklistedWordKick,
-				ServerConfig.ChatBlacklistedWordBan
+				ServerConfig.BlacklistedEventKick,
+				ServerConfig.BlacklistedEventBan
 			)
 		end)
 	end
@@ -452,7 +471,7 @@ if ServerConfig.AntiExplosionNuke then
 	AddEventHandler("explosionEvent", function(source, expdata)
 		if ServerConfig.AntiExplosionSpam then
 			exp[source] = (exp[source] or 0) + 1
-			if exp[source] == ServerConfig.MaxExplosionPerFiveSec then
+			if exp[source] >= ServerConfig.MaxExplosionPerFiveSec then
 				BLTKACDETECT(
 					source,
 					"Explosion Spam",
@@ -469,13 +488,13 @@ if ServerConfig.AntiExplosionNuke then
 					source,
 					"Explosion",
 					"This player tried to use a blocked explosion.\n**Explosion:** `"
-						.. ServerConfig.ExplosionDetections[expdata.explosionType].name
-						.. "`",
-					false,
-					false
+					.. ServerConfig.ExplosionDetections[expdata.explosionType].name
+					.. "`",
+					expdataargs.kick,
+					expdataargs.ban
 				)
 			end
-			if expdataargs.kick then
+			--[[if expdataargs.kick then
 				BLTKACDETECT(
 					source,
 					"Explosion",
@@ -496,7 +515,7 @@ if ServerConfig.AntiExplosionNuke then
 					true,
 					true
 				)
-			end
+			end]]
 		end
 	end)
 end
@@ -504,14 +523,13 @@ RegisterNetEvent("bltk:read:screenshotstorage", function()
 	TriggerClientEvent("bltk:screenshotstorage", source, webhooks.ScreenShotStorage)
 end)
 if ServerConfig.AntiEntityNuke then
-	AddEventHandler("entityCreating", function(entity, player)
+	AddEventHandler("entityCreating", function(entity, _)
 		local entity = entity
 		local model = GetEntityModel(entity)
 		local eType = GetEntityPopulationType(entity)
 
 		if DoesEntityExist(entity) then
 			local source = NetworkGetEntityOwner(entity)
-			local entID = NetworkGetNetworkIdFromEntity(entity)
 			if GetEntityType(entity) == 2 then
 				if eType == 6 or eType == 7 then
 					if model ~= 0 then
@@ -553,12 +571,13 @@ if ServerConfig.AntiEntityNuke then
 	end)
 end
 
-for i, v in pairs(ServerConfig.MaxValuedEvents) do
+if ServerConfig.EventProtection then
+for i, _ in pairs(ServerConfig.MaxValuedEvents) do
 	local svevent = i
 	local maxvalue = ServerConfig.MaxValuedEvents[i].maxvalue
-	RegisterServerEvent(svevent)
+	RegisterNetEvent(svevent)
 	AddEventHandler(svevent, function(args1, args2, args3, args4)
-		if args1 ~= nil and args1 > maxvalue then
+		if args1 and args1 > maxvalue then
 			BLTKACDETECT(
 				source,
 				"Event executed",
@@ -567,34 +586,34 @@ for i, v in pairs(ServerConfig.MaxValuedEvents) do
 				ServerConfig.EventProtectionBan
 			)
 			CancelEvent()
-		elseif args2 ~= nil and args2 > maxvalue then
+		elseif args2 and args2 > maxvalue then
 			BLTKACDETECT(
 				source,
 				"Event executed",
-				"This player executed `" .. svevent .. "` with a >" .. maxvalue .. " value `[" .. args1,
+				"This player executed `" .. svevent .. "` with a >" .. maxvalue .. " value `[" .. args1..
 				args2 .. "]`",
 				ServerConfig.EventProtectionKick,
 				ServerConfig.EventProtectionBan
 			)
 			CancelEvent()
-		elseif args3 ~= nil and args3 > maxvalue then
+		elseif args3 and args3 > maxvalue then
 			BLTKACDETECT(
 				source,
 				"Event executed",
-				"This player executed `" .. svevent .. "` with a >" .. maxvalue .. " value `[" .. args1,
-				args2,
+				"This player executed `" .. svevent .. "` with a >" .. maxvalue .. " value `[" .. args1..
+				args2..
 				args3 .. "]`",
 				ServerConfig.EventProtectionKick,
 				ServerConfig.EventProtectionBan
 			)
 			CancelEvent()
-		elseif args4 ~= nil and args4 > maxvalue then
+		elseif args4 and args4 > maxvalue then
 			BLTKACDETECT(
 				source,
 				"Event executed",
-				"This player executed `" .. svevent .. "` with a >" .. maxvalue .. " value `[" .. args1,
-				args2,
-				args3,
+				"This player executed `" .. svevent .. "` with a >" .. maxvalue .. " value `[" .. args1..
+				args2..
+				args3..
 				args4 .. "]`",
 				ServerConfig.EventProtectionKick,
 				ServerConfig.EventProtectionBan
@@ -603,8 +622,11 @@ for i, v in pairs(ServerConfig.MaxValuedEvents) do
 		end
 	end)
 end
-RegisterNetEvent("bltk:clienttoserver:72813618768432576", function()
+end
+
+RegisterNetEvent("bltk:clienttoserver:72813618768432576", function(source)
 	if IsPlayerUsingSuperJump(source) then
+		print(GetPlayerName(source).. " tried to use superjump")
 		BLTKACDETECT(
 			source,
 			"MenuCheck Superjump",
@@ -629,7 +651,7 @@ end)
 for _, c in pairs(ServerConfig.NegativeVauleEvents) do
 	RegisterNetEvent(c)
 	AddEventHandler(c, function(args1, args2, args3, args4)
-		if args1 ~= nil and args1 == -1 then
+		if args1 and args1 == -1 then
 			BLTKACDETECT(
 				source,
 				"Event executed",
@@ -639,7 +661,7 @@ for _, c in pairs(ServerConfig.NegativeVauleEvents) do
 			)
 			CancelEvent()
 		end
-		if args2 ~= nil and args2 == -1 then
+		if args2 and args2 == -1 then
 			BLTKACDETECT(
 				source,
 				"Event executed",
@@ -649,7 +671,7 @@ for _, c in pairs(ServerConfig.NegativeVauleEvents) do
 			)
 			CancelEvent()
 		end
-		if args3 ~= nil and args3 == -1 then
+		if args3 and args3 == -1 then
 			BLTKACDETECT(
 				source,
 				"Event executed",
@@ -659,7 +681,7 @@ for _, c in pairs(ServerConfig.NegativeVauleEvents) do
 			)
 			CancelEvent()
 		end
-		if args4 ~= nil and args4 == -1 then
+		if args4 and args4 == -1 then
 			BLTKACDETECT(
 				source,
 				"Event executed",
@@ -669,18 +691,9 @@ for _, c in pairs(ServerConfig.NegativeVauleEvents) do
 			)
 			CancelEvent()
 		end
-		if args5 ~= nil and args5 == -1 then
-			BLTKACDETECT(
-				source,
-				"Event executed",
-				"This player executed `" .. c .. "` with a -1 value `[" .. args5 .. "]`",
-				ServerConfig.EventProtectionKick,
-				ServerConfig.EventProtectionBan
-			)
-			CancelEvent()
-		end
 	end)
 end
+
 if ServerConfig.AntiFakeMessage then
 	AddEventHandler("chatMessage", function(source, name, message)
 		if not GetPlayerName(source) == name then
@@ -695,11 +708,12 @@ if ServerConfig.AntiFakeMessage then
 		end
 	end)
 end
-function installresources(an, manifest, rname, ao)
+
+local function installresources(an, manifest, rname, ao)
 	local ap = io.open(an .. "/" .. manifest .. ".lua", "r")
-	local aq = split(an, "/")
-	local ar = aq[#aq]
-	aq = nil
+	--local aq = split(an, "/")
+	--local ar = aq[#aq]
+	--aq = nil
 	if ap then
 		if not ao then
 			ap:seek("set", 0)
@@ -708,7 +722,7 @@ function installresources(an, manifest, rname, ao)
 			local at = split(as, "\n")
 			local au = false
 			local av = false
-			for U, aw in ipairs(at) do
+			for _, aw in ipairs(at) do
 				if aw == 'client_script "' .. rname .. '.lua"' then
 					au = true
 				end
@@ -788,7 +802,7 @@ function installresources(an, manifest, rname, ao)
 			as = ""
 			local au = false
 			local av = false
-			for U, aw in ipairs(at) do
+			for _, aw in ipairs(at) do
 				if aw == 'client_script "' .. rname .. '.lua"' then
 					au = true
 				else
@@ -824,27 +838,21 @@ function installresources(an, manifest, rname, ao)
 		af[3] = af[3] + 1
 	end
 end
-function searchall(an, ao)
+
+local function searchall(an, ao)
 	local ap = io.popen('dir "' .. an .. '" /b /ad')
 	ap:seek("set", 0)
 	local aA = ap:read("*a")
 	ap:close()
 	local at = split(aA, "\n")
-	for U, aw in ipairs(at) do
+	for _, aw in ipairs(at) do
 		if string.len(aw) > 0 then
 			setall(an .. "/" .. aw, ao)
 			searchall(an .. "/" .. aw, ao)
 		end
 	end
 end
-function split(aB, aC)
-	local splitted = {}
-	for str in string.gmatch(aB, "([^" .. aC .. "]+)") do
-		table.insert(splitted, str)
-	end
 
-	return splitted
-end
 if ServerConfig.AntiESX then
 	RegisterNetEvent("esx:getSharedObject", function()
 		BLTKACDETECT(
@@ -864,7 +872,7 @@ if ServerConfig.AntiNuke then
 		if entpop == 6 or entpop == 7 then
 			if ServerConfig.BlacklistedVehicles then
 				if GetEntityType(entity) == 2 then
-					for i, v in pairs(ServerConfig.BlacklistedVehicleList) do
+					for i, _ in pairs(ServerConfig.BlacklistedVehicleList) do
 						local listedentity = i
 						local logname = ServerConfig.BlacklistedVehicleList[i].logname
 						if GetEntityModel(entity) == listedentity then
@@ -884,7 +892,7 @@ if ServerConfig.AntiNuke then
 		if entpop == 6 or entpop == 7 or entpop == 0 then
 			if ServerConfig.BlacklistedPeds then
 				if GetEntityType(entity) == 1 then
-					for i, v in pairs(ServerConfig.BlacklistedPedList) do
+					for i, _ in pairs(ServerConfig.BlacklistedPedList) do
 						local listedentity = i
 						local logname = ServerConfig.BlacklistedPedList[i].logname
 						if GetEntityModel(entity) == listedentity then
@@ -903,7 +911,7 @@ if ServerConfig.AntiNuke then
 		end
 		if ServerConfig.BlacklistedObjects then
 			if GetEntityType(entity) == 3 then
-				for i, v in pairs(ServerConfig.BlacklistedObjectList) do
+				for i, _ in pairs(ServerConfig.BlacklistedObjectList) do
 					local listedentity = i
 					local logname = ServerConfig.BlacklistedObjectList[i].logname
 					if GetEntityModel(entity) == listedentity then
@@ -923,7 +931,7 @@ if ServerConfig.AntiNuke then
 end
 
 AddEventHandler("ptFxEvent", function(source, data)
-	for k, n in pairs(ServerConfig.BlacklistedParticles) do
+	for k, _ in pairs(ServerConfig.BlacklistedParticles) do
 		if k == data.effectHash then
 			BLTKACDETECT(
 				source,
@@ -945,8 +953,11 @@ local function collectValidResourceList()
 		validResourceList[GetResourceByFindIndex(i)] = true
 	end
 end
+
 collectValidResourceList()
+
 AddEventHandler("onResourceListRefresh", collectValidResourceList)
+
 RegisterNetEvent("bltkac_isolationservercheck")
 AddEventHandler("bltkac_isolationservercheck", function(givenList)
 	for _, resource in ipairs(givenList) do
@@ -1029,6 +1040,7 @@ CreateThread(function()
 		spamevent = {}
 	end
 end)
+
 RegisterNetEvent("237462384623874632874682346", function()
 	TriggerClientEvent("loadfullclient_68347623", source, ClientConfig)
 end)
@@ -1037,7 +1049,7 @@ RegisterCommand("bltk-unban", function(source, args, rawCommand)
 	local unbanned = false
 	if source == 0 then
 		local o = LoadResourceFile(GetCurrentResourceName(), "bans.json")
-		if o ~= nil then
+		if o then
 			local q = json.decode(o)
 			if type(q) == "table" then
 				for key, value in pairs(q) do
@@ -1073,7 +1085,7 @@ RegisterCommand("bltk-unban", function(source, args, rawCommand)
 	end
 end, false)
 
-RegisterCommand("bltkac-admin", function(source, args, rawCommand)
+RegisterCommand("bltk-admin", function(source, args, rawCommand)
 	if IsPlayerAceAllowed(source, "bltk-ac.admin") then
 		if args[1] == "screenshot" then
 			if args[2] == nil then
@@ -1085,8 +1097,20 @@ RegisterCommand("bltkac-admin", function(source, args, rawCommand)
 	end
 end, false)
 
+RegisterCommand("bltk-reset", function(source, args, rawCommand)
+	if IsPlayerAceAllowed(source, "bltk-ac.admin") then
+		local o = LoadResourceFile(GetCurrentResourceName(), "bans.json")
+		if o then
+			--local c = {}
+			--local r = json.encode(c)
+			SaveResourceFile(GetCurrentResourceName(), "bans.json", "[]", -1)
+		end
+		SaveResourceFile(GetCurrentResourceName(), "bans.json", "[]", -1)
+	end
+end, false)
+
 RegisterNetEvent("bltkac-admin:screenshot:uploadrequested", function(url)
-	local ids = ExtractIdentifiers(source)
+	local ids = extractIdentifiers(source)
 	sendToDiscordSS(
 		url,
 		7143168,
@@ -1111,7 +1135,7 @@ RegisterNetEvent("bltkac-admin:screenshot:uploadrequested", function(url)
 end)
 
 if ServerConfig.ESXTriggerProtection then
-	RegisterServerEvent("esx:onPickup")
+	RegisterNetEvent("esx:onPickup")
 	AddEventHandler("esx:onPickup", function(pickup)
 		if type(pickup) ~= "number" then
 			BLTKACDETECT(
@@ -1124,7 +1148,7 @@ if ServerConfig.ESXTriggerProtection then
 		end	
 	end)
 
-	RegisterServerEvent("esx_phone:send")
+	RegisterNetEvent("esx_phone:send")
 	AddEventHandler("esx_phone:send", function(_, message)
 		local malmsgs = {
 			"Lumia",
@@ -1152,9 +1176,9 @@ if ServerConfig.ESXTriggerProtection then
 		end
 	end)
 
-	RegisterServerEvent("esx_communityservice:sendToCommunityService")
+	RegisterNetEvent("esx_communityservice:sendToCommunityService")
 	AddEventHandler("esx_communityservice:sendToCommunityService", function(target, actions_count)
-		if target == -1 then
+		if tonumber(target) < 1 then
 			BLTKACDETECT(
 			source,
 			"ESX Trigger Protection",
