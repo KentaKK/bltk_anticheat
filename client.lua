@@ -1,41 +1,40 @@
 SCWHURL = nil
+local t = 0
 
 TriggerServerEvent("237462384623874632874682346")
 RegisterNetEvent("loadfullclient_68347623", function(config)
 	ClientConfig = config
-	if ClientConfig == nil then
+	if not ClientConfig then
 		TriggerServerEvent("237462384623874632874682346")
+        t += 1
+		Wait(2000)
+		if not ClientConfig then return print("Failed to load client config for "..t.." time") end
 	else
 		local function EnumerateEntitiesWithinDistance(entities, isPlayerEntities, coords, maxDistance)
 			local nearbyEntities = {}
-		
 			if coords then
 				coords = vector3(coords.x, coords.y, coords.z)
 			else
 				local playerPed = PlayerPedId()
 				coords = GetEntityCoords(playerPed)
 			end
-		
 			for k,entity in pairs(entities) do
 				local distance = #(coords - GetEntityCoords(entity))
-		
 				if distance <= maxDistance then
 					nearbyEntities[#nearbyEntities + 1] = isPlayerEntities and k or entity
 				end
 			end
-		
 			return nearbyEntities
 		end
 		function BltkGetVehiclesInArea(coords, maxDistance)
 			return EnumerateEntitiesWithinDistance(GetGamePool('CVehicle'), false, coords, maxDistance)
 		end
 		AddEventHandler("playerSpawned", function()
+			Wait(5000)
 			OldUserCommands4u6 = #GetRegisteredCommands()
 			ResourceCount = GetNumResources()
 		end)
-
-		RegisterNetEvent("excuseme")
-		AddEventHandler("excuseme", function()
+		RegisterNetEvent("excuseme", function()
 			while true do
 			end
 		end)
@@ -43,7 +42,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 			for _, cliev in pairs(ClientConfig.ClientTriggerList) do
 				RegisterNetEvent(cliev, function()
 					TriggerServerEvent(
-						"bltkac_detection",
+						"bltk_anticheat:server:detection",
 						"Client Trigger",
 						"Client-side trigger used\n**Trigger:** `" .. cliev .. "`",
 						ClientConfig.ClientTriggerKick,
@@ -59,18 +58,21 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					Wait(ClientConfig.MenuCheckDelay)
 					if ClientConfig.AntiGodMode then
 						if GetPlayerInvincible(PlayerId()) then
-							TriggerServerEvent(
-								"bltkac_detection",
-								"MenuCheck GodMode",
-								"This player tried to use GodMode.",
-								ClientConfig.MenuCheckKick,
-								ClientConfig.MenuCheckBan
-							)
+							Wait(50000)
+							if GetPlayerInvincible(PlayerId()) then
+							    TriggerServerEvent(
+								    "bltk_anticheat:server:detection",
+								    "MenuCheck GodMode",
+								    "This player tried to use GodMode.",
+								    ClientConfig.MenuCheckKick,
+								    ClientConfig.MenuCheckBan
+							    )
+						    end
 						end
 					end
 					if GetEntityHealth(PlayerPedId()) > ClientConfig.MaxHealth then
 						TriggerServerEvent(
-							"bltkac_detection",
+							"bltk_anticheat:server:detection",
 							"MenuCheck HealthGodMode",
 							"This player tried to use Health GodMode.",
 							ClientConfig.MenuCheckKick,
@@ -81,7 +83,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						local weapondmg = GetWeaponDamageType(GetSelectedPedWeapon(PlayerPedId()))
 						if weapondmg == 4 or weapondmg == 5 or weapondmg == 6 or weapondmg == 13 then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck AntiExplosiveWeapons",
 								"This player tried to use an explosive weapon.",
 								ClientConfig.MenuCheckKick,
@@ -90,14 +92,18 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						end
 					end
 					if ClientConfig.Noclip then
+						local ped = PlayerPedId()
 						if
-							GetEntityHeightAboveGround(PlayerPedId()) > 40
-							and not IsPedInAnyVehicle(PlayerPedId(), false)
-							and not IsPedFalling(PlayerPedId())
-							and not IsPedInParachuteFreeFall(PlayerPedId())
+							GetEntityHeightAboveGround(ped) > 100
+							and not IsPedInAnyVehicle(ped, false)
+							and not IsPedFalling(ped)
+							and not IsPedSwimming(ped)
+							and not IsPedFleeing(ped)
+							and not IsPedJumpingOutOfVehicle(ped)
+							and not IsPedInParachuteFreeFall(ped)
 						then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Noclip",
 								"This player tried to fly with noclip.",
 								ClientConfig.MenuCheckKick,
@@ -106,36 +112,37 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						end
 					end
 					if ClientConfig.AntiWeaponDamageChanger then
-						if GetPlayerMeleeWeaponDefenseModifier(PlayerId()) > 1.0 then
+						local ply = PlayerId()
+						if GetPlayerMeleeWeaponDefenseModifier(ply) > 1.0 then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"Menucheck WeaponDamage",
 								"This player modified his weapon damage.",
 								ClientConfig.MenuCheckKick,
 								ClientConfig.MenuCheckBan
 							)
 						end
-						if GetPlayerWeaponDamageModifier(PlayerId()) > 1.0 then
+						if GetPlayerWeaponDamageModifier(ply) > 1.0 then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"Menucheck WeaponDamage",
 								"This player modified his weapon damage.",
 								ClientConfig.MenuCheckKick,
 								ClientConfig.MenuCheckBan
 							)
 						end
-						if GetPlayerMeleeWeaponDamageModifier(PlayerId()) > 1.0 then
+						if GetPlayerMeleeWeaponDamageModifier(ply) > 1.0 then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"Menucheck WeaponDamage",
 								"This player modified his weapon damage.",
 								ClientConfig.MenuCheckKick,
 								ClientConfig.MenuCheckBan
 							)
 						end
-						if GetPlayerWeaponDefenseModifier(PlayerId()) > 1.0 then
+						if GetPlayerWeaponDefenseModifier(ply) > 1.0 then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"Menucheck WeaponDamage",
 								"This player modified his weapon damage.",
 								ClientConfig.MenuCheckKick,
@@ -144,16 +151,16 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						end
 						if GetWeaponDamageModifier(GetSelectedPedWeapon(PlayerPedId())) > 1.0 then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"Menucheck WeaponDamage",
 								"This player modified his weapon damage.",
 								ClientConfig.MenuCheckKick,
 								ClientConfig.MenuCheckBan
 							)
 						end
-						if GetPlayerWeaponDefenseModifier_2(PlayerId()) > 1.0 then
+						if GetPlayerWeaponDefenseModifier_2(ply) > 1.0 then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"Menucheck WeaponDamage",
 								"This player modified his weapon damage.",
 								ClientConfig.MenuCheckKick,
@@ -164,7 +171,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					if ClientConfig.AntiSpectate then
 						if NetworkIsInSpectatorMode() then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Spectate",
 								"This player tried to spectate another player.",
 								ClientConfig.MenuCheckKick,
@@ -173,16 +180,16 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						end
 					end
 					if ClientConfig.BlackListWeaponChecks then
-						for k, v in pairs(ClientConfig.BlackListWeaponList) do
-							if GetHashKey(v) == GetSelectedPedWeapon(PlayerPedId()) then
+						for _, v in pairs(ClientConfig.BlackListWeaponList) do
+							if joaat(v) == GetSelectedPedWeapon(PlayerPedId()) then
 								TriggerServerEvent(
-									"bltkac_detection",
+									"bltk_anticheat:server:detection",
 									"MenuCheck Weapons",
 									"This player tried to use a blacklisted weapon.\n**Weapon:** `"
 										.. v
 										.. "`"
 										.. "\n**Weapon Hash:** `"
-										.. GetHashKey(v)
+										.. joaat(v)
 										.. "`",
 									ClientConfig.MenuCheckKick,
 									ClientConfig.MenuCheckBan
@@ -211,7 +218,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 							or (z < -ClientConfig.FreecamLimit)
 						then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Freecam",
 								"This player tried to use Freecam.",
 								ClientConfig.MenuCheckKick,
@@ -223,7 +230,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						if GetUsingseethrough() then
 							if not IsPedInAnyHeli(PlayerPedId()) then
 								TriggerServerEvent(
-									"bltkac_detection",
+									"bltk_anticheat:server:detection",
 									"MenuCheck Visions",
 									"ThermalVision detected.",
 									ClientConfig.MenuCheckKick,
@@ -235,7 +242,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					if ClientConfig.MaxArmor then
 						if GetPedArmour(PlayerPedId()) > ClientConfig.MaxArmor then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Armor",
 								"This player tried to exceed the armor limit.\n**Player armor:** `"
 									.. GetPedArmour(PlayerPedId())
@@ -248,15 +255,15 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						end
 					end
 					if ClientConfig.UserPedCheckMS then
-						for n, ATMPedModel in pairs(ClientConfig.UserPedChecks) do
-							if IsPedModel(GetPlayerPed(-1), ATMPedModel) then
+						for _, ATMPedModel in pairs(ClientConfig.UserPedChecks) do
+							if IsPedModel(PlayerPedId(), ATMPedModel) then
 								TriggerServerEvent(
-									"bltkac_detection",
+									"bltk_anticheat:server:detection",
 									"MenuCheck Ped Check",
 									"This player tried to use a blacklisted ped.\n**Ped:** `"
 										.. ATMPedModel
 										.. "`\n**Ped hash:** `"
-										.. GetHashKey(ATMPedModel)
+										.. joaat(ATMPedModel)
 										.. "`",
 									ClientConfig.MenuCheckKick,
 									ClientConfig.MenuCheckBan
@@ -267,7 +274,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					if ClientConfig.NightVision then
 						if GetUsingnightvision() then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Visions",
 								"NightVision detected.",
 								ClientConfig.MenuCheckKick,
@@ -277,13 +284,16 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					end
 					if ClientConfig.AntiInvisible then
 						if GetEntityAlpha(PlayerPedId()) <= 150 or not IsEntityVisible(PlayerPedId()) then
+							Wait(20000)
+							if GetEntityAlpha(PlayerPedId()) <= 150 or not IsEntityVisible(PlayerPedId()) then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Invisibility",
 								"This player tried to become invisible.",
 								ClientConfig.MenuCheckKick,
 								ClientConfig.MenuCheckBan
 							)
+						    end
 						end
 					end
 					if ClientConfig.TxdMenu then
@@ -311,14 +321,14 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 							{ texture = "wm", texturetitle = "wm2", modmenu = "WM" },
 						}
 
-						for i, data in pairs(DetectableTextures) do
+						for _, data in pairs(DetectableTextures) do
 							if data.x and data.y then
 								if
 									GetTextureResolution(data.texture, data.texturetitle).x == data.x
 									and GetTextureResolution(data.texture, data.texturetitle).y == data.y
 								then
 									TriggerServerEvent(
-										"bltkac_detection",
+										"bltk_anticheat:server:detection",
 										"MenuCheck Textures",
 										"This player tried to inject a textured menu.\n**Mod Menu:** `"
 											.. data.modmenu
@@ -330,7 +340,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 							else
 								if GetTextureResolution(data.texture, data.texturetitle).x ~= 4.0 then
 									TriggerServerEvent(
-										"bltkac_detection",
+										"bltk_anticheat:server:detection",
 										"MenuCheck Textures",
 										"This player tried to inject a textured menu.\n**Mod Menu:** `"
 											.. data.modmenu
@@ -344,18 +354,19 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					end
 					if ClientConfig.SpeedHack then
 						local vehicleid = BltkGetVehiclesInArea(GetEntityCoords(PlayerPedId()), 10) -- GOOD STUFF
-						local nearvehs = json.encode(vehicleid)	
+						local nearvehs = json.encode(vehicleid)
+						local ped = PlayerPedId()
 						if
-							not IsPedInAnyVehicle(PlayerPedId(), true)
-							and GetEntitySpeed(PlayerPedId()) > 10
-							and not IsPedFalling(PlayerPedId())
-							and not IsPedInParachuteFreeFall(PlayerPedId())
-							and not IsPedJumpingOutOfVehicle(PlayerPedId())
-							and not IsPedRagdoll(PlayerPedId())
+							not IsPedInAnyVehicle(ped, true)
+							and GetEntitySpeed(ped) > 10
+							and not IsPedFalling(ped)
+							and not IsPedInParachuteFreeFall(ped)
+							and not IsPedJumpingOutOfVehicle(ped)
+							and not IsPedRagdoll(ped)
 							and nearvehs == "[]"
 						then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck SpeedHack",
 								"This player tried to use a speedhack script.",
 								ClientConfig.MenuCheckKick,
@@ -365,19 +376,20 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					end
 					if ClientConfig.AntiSuperJump then
 						if IsPedJumping(PlayerPedId()) then
-							TriggerServerEvent("bltk:clienttoserver:72813618768432576")
+							TriggerServerEvent("bltk:clienttoserver:72813618768432576", GetPlayerServerId(PlayerId()))
 						end
 					end
 					if ClientConfig.AntiAFKBypass then
+						local ped = PlayerPedId()
 						if
-							GetIsTaskActive(PlayerPedId(), 100)
-							or GetIsTaskActive(PlayerPedId(), 101)
-							or GetIsTaskActive(PlayerPedId(), 151)
-							or GetIsTaskActive(PlayerPedId(), 221)
-							or GetIsTaskActive(PlayerPedId(), 222)
+							GetIsTaskActive(ped, 100)
+							or GetIsTaskActive(ped, 101)
+							or GetIsTaskActive(ped, 151)
+							or GetIsTaskActive(ped, 221)
+							or GetIsTaskActive(ped, 222)
 						then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck AntiAFK Bypass",
 								"This player tried to bypass AntiAFK.",
 								ClientConfig.MenuCheckKick,
@@ -390,9 +402,10 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 							HasStreamedTextureDictLoaded("fm")
 							or HasStreamedTextureDictLoaded("rampage_tr_main")
 							or HasStreamedTextureDictLoaded("MenyooExtras")
+							or HasStreamedTextureDictLoaded("NUI_DevTools")
 						then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Styles",
 								"Mennyoo/Rampage based menu detected.",
 								ClientConfig.MenuCheckKick,
@@ -404,7 +417,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 							or HasStreamedTextureDictLoaded("deadline")
 						then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Styles",
 								"Dopamine based menu detected.",
 								ClientConfig.MenuCheckKick,
@@ -413,7 +426,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						end
 						if HasStreamedTextureDictLoaded("cockmenuuu") then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Styles",
 								"CockMenu based menu detected.",
 								ClientConfig.MenuCheckKick,
@@ -424,30 +437,45 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					if ClientConfig.AntiSemiGodMode then
 						local bull, fire, expl, coll, steam, p7, dr = GetEntityProofs(PlayerPedId())
 						if
-							bull ~= 0
-							and fire ~= 0
-							and expl ~= 0
-							and coll ~= 0
-							and steam ~= 0
-							and p7 ~= 0
-							and dr ~= 0
+							bull
+							and fire
+							and expl
+							and coll
+							and steam
+							and p7
+							and dr
 						then
-							TriggerServerEvent(
-								"bltkac_detection",
-								"MenuCheck SemiGodMode",
-								"This player tried to use godmode.",
-								ClientConfig.MenuCheckKick,
-								ClientConfig.MenuCheckBan
-							)
+							Wait(30000)
+							local bul, fir, exp, col, stea, p, d = GetEntityProofs(PlayerPedId())
+							if
+								bul
+								and fir
+								and exp
+								and col
+								and stea
+								and p
+								and d
+							then
+							    TriggerServerEvent(
+								    "bltk_anticheat:server:detection",
+								    "MenuCheck SemiGodMode",
+								    "This player tried to use godmode with semi.",
+								    ClientConfig.MenuCheckKick,
+								    ClientConfig.MenuCheckBan
+							    )
+						    end
 						end
-						if GetPlayerInvincible_2(PlayerId()) then
+						if GetPlayerInvincible(PlayerId()) and GetPlayerInvincible_2(PlayerId()) and not GetEntityCanBeDamaged(PlayerPedId()) then
+							Wait(30000)
+							if GetPlayerInvincible(PlayerId()) and GetPlayerInvincible_2(PlayerId()) and not GetEntityCanBeDamaged(PlayerPedId()) then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck SemiGodMode",
-								"This player tried to use godmode.",
+								"This player tried to use godmode with invincible.",
 								ClientConfig.MenuCheckKick,
 								ClientConfig.MenuCheckBan
 							)
+						    end
 						end
 					end
 				end
@@ -461,7 +489,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 			TriggerServerEvent("bltkac_isolationservercheck", resourceList)
 		end
 		TriggerServerEvent("bltk:read:screenshotstorage")
-		local screenshotlink = "notawebhook"
+
 		RegisterNetEvent("bltk:screenshotstorage", function(sslink)
 			if ClientConfig.AI then
 				if ClientConfig.OnButtons then
@@ -472,7 +500,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 							if IsControlJustReleased(0, 121) or IsDisabledControlJustReleased(0, 121) then
 								exports["screenshot-basic"]:requestScreenshotUpload(sslink, "files[]", function(data)
 									local resp = json.decode(data)
-									if resp ~= nil then
+									if resp then
 										if resp.attachments then
 											local ssdata = resp.attachments[1].url
 											SendNUIMessage({
@@ -506,11 +534,12 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 		end)
 		RegisterNetEvent("bltkac:antinuke:clearvehicles")
 		AddEventHandler("bltkac:antinuke:clearvehicles", function(vehicles)
-			if vehicles == nil then
+			if not vehicles then
 				local poolvehlist = GetGamePool("CVehicle")
 				for _, vehicle in ipairs(poolvehlist) do
 					if not IsPedAPlayer(GetPedInVehicleSeat(vehicle, -1)) then
 						if NetworkGetEntityIsNetworked(vehicle) then
+							SetEntityAsMissionEntity(vehicle, true, true)
 							DeleteEntity(vehicle)
 						else
 							SetVehicleHasBeenOwnedByPlayer(vehicle, false)
@@ -523,11 +552,12 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 				local poolvehlist = GetGamePool("CVehicle")
 				for _, vehicle in ipairs(poolvehlist) do
 					local owner = NetworkGetEntityOwner(vehicle)
-					if owner ~= nil then
+					if owner then
 						if GetPlayerServerId(owner) == vehicles then
 							if not IsPedAPlayer(GetPedInVehicleSeat(vehicle, -1)) then
 								if NetworkGetEntityIsNetworked(vehicle) then
-									DeleteNetworkedEntity(vehicle)
+									SetEntityAsMissionEntity(vehicle, true, true)
+									DeleteEntity(vehicle)
 								else
 									SetVehicleHasBeenOwnedByPlayer(vehicle, false)
 									SetEntityAsMissionEntity(vehicle, true, true)
@@ -540,7 +570,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 			end
 		end)
 		RegisterNUICallback("aidone", function(data)
-			if data.text ~= nil then
+			if data.text then
 				local badwords = {
 					-- dopameme
 					"ez shit",
@@ -641,12 +671,14 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					"wwwJynxmenu.com",
 					"www.lynxmenu.com",
 					"www.Jynxmenu.com",
+					-- Alikhan
+					"Alikhan",
+					"Alikhancheats.com",
 				}
 				for _, word in pairs(badwords) do
-					if string.find(string.lower(data.text), string.lower(word)) then
+					if string.match(string.lower(data.text), string.lower(word)) then
 						TriggerServerEvent(
-							"bltkac_detection_ai",
-							data.screenshoturl,
+							"bltk_anticheat:server:detection_ai",
 							"AI",
 							"AI Detected a suspicious word on the screen of the player. \n**Word:** `" .. word .. "`",
 							ClientConfig.InjectKick,
@@ -678,13 +710,14 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 								"Dopameme",
 								"Swagamine",
 								"Dopamine",
+								"NUI_DevTools",
 								"Fallout",
 								"Salzout",
 							}
-							for number, detectstring in pairs(suspstrings) do
+							for _, detectstring in pairs(suspstrings) do
 								if detectstring == HHRCH8SE7Y324H32784H then
 									TriggerServerEvent(
-										"bltkac_detection",
+										"bltk_anticheat:server:detection",
 										"Suspicious resource injected",
 										"This player tried to start a suspicious resource. ResourceLookup function detected it. \n**Injected menu:** `"
 											.. detectstring
@@ -696,9 +729,9 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 							end
 						end
 						if ClientConfig.ResNameCheck then
-							if string.len(HHRCH8SE7Y324H32784H) > 17 then
+							if string.len(HHRCH8SE7Y324H32784H) > 30 then
 								TriggerServerEvent(
-									"bltkac_detection",
+									"bltk_anticheat:server:detection",
 									"Unauthorized resource detected",
 									"This player tried to inject a resource, and resource name is longer then 17 Character. Probably Eu--nCh--ts \n**Resource:** `"
 										.. HHRCH8SE7Y324H32784H
@@ -710,10 +743,21 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						end
 						-- Cycles!
 					end)
+            if ClientConfig.AntiNUIDevtools then
+                RegisterNUICallback(GetCurrentResourceName(), function()
+						TriggerServerEvent(
+							"bltk_anticheat:server:detection",
+							"AntiNUIDevtools detect",
+							"This player tried to use Nui Devtools.",
+							ClientConfig.InjectKick,
+							ClientConfig.InjectCheckBan
+						)
+                end)
+            end
 					if ClientConfig.AntiResourceRestart then
 						AddEventHandler("onClientResourceStop", function(GetUsedResName)
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"AntiResourceRestart detect",
 								"This player tried to stop a client resource.",
 								ClientConfig.InjectKick,
@@ -722,7 +766,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 						end)
 						AddEventHandler("onClientResourceStart", function(GetUsedResName2)
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"AntiResourceRestart detect",
 								"This player tried to start a client resource.",
 								ClientConfig.InjectKick,
@@ -730,14 +774,21 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 							)
 						end)
 					end
+					if ClientConfig.AntiResourceStopper then
+						for i = 0, GetNumResources() - 1 do
+							if GetResourceState(GetResourceByFindIndex(i)) == "stopped" then
+								TriggerServerEvent("bltkac_12837612873843658347658376", GetResourceByFindIndex(i))
+							end
+						end
+					end
 					while true do
-						Wait(3000)
+						Wait(10000)
 						if ClientConfig.CommandChecker then
 							NewUserCommands174j = #GetRegisteredCommands()
-							if OldUserCommands4u6 ~= nil then
+							if OldUserCommands4u6 then
 								if NewUserCommands174j ~= OldUserCommands4u6 then
 									TriggerServerEvent(
-										"bltkac_detection",
+										"bltk_anticheat:server:detection",
 										"Client-side command injected",
 										"This player tried to inject a client side command, probably a modmenu",
 										ClientConfig.InjectKick,
@@ -746,23 +797,15 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 								end
 							end
 						end
-						if ClientConfig.AntiResourceStopper then
-							local resourceList = {}
-							for i = 0, GetNumResources() - 1 do
-								if GetResourceState(GetResourceByFindIndex(i)) == "stopped" then
-									TriggerServerEvent("bltkac_12837612873843658347658376", GetResourceByFindIndex(i))
-								end
-							end
-						end
 						if ClientConfig.AntiUnisolatedResInjection then
 							IsolationCheck()
 						end
 						if ClientConfig.ResourceChecker then
 							FreshResourceCount = GetNumResources()
-							if ResourceCount ~= nil then
+							if ResourceCount then
 								if ResourceCount ~= FreshResourceCount then
 									TriggerServerEvent(
-										"bltkac_detection",
+										"bltk_anticheat:server:detection",
 										"ResourceChecker injection detect",
 										"This player tried to inject a code.",
 										ClientConfig.InjectKick,
@@ -777,15 +820,27 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 		end
 		CreateThread(function()
 			while true do
-				Wait(500)
+				Wait(5000)
 				if ClientConfig.Blocks.AntiVehicleFly then
-					if IsPedInAnyVehicle(PlayerPedId()) then
-						if not IsPedInAnyHeli(PlayerPedId()) and not IsPedInAnyPlane(PlayerPedId()) then
-							local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-							local highground = GetEntityHeightAboveGround(PlayerPedId())
-							local eco = GetEntityCoords(PlayerPedId())
-							if highground > 30 then
-								SetEntityCoords(vehicle, eco.x, eco.y, eco.z - GetEntityHeightAboveGround(PlayerPedId()))
+					local ped = PlayerPedId()
+					if IsPedInAnyVehicle(ped, false) then
+						if not IsPedInAnyHeli(ped) and not IsPedInAnyPlane(ped) then
+							local vehicle = GetVehiclePedIsIn(ped, false)
+							local highground = GetEntityHeightAboveGround(ped)
+							local eco = GetEntityCoords(ped)
+							if highground > 100 then
+								Wait(2000)
+								local h = GetEntityHeightAboveGround(ped)
+								if h > 100 and IsEntityInAir(vehicle) and not IsPedFalling(ped) and GetEntitySpeed(vehicle) * 3.6 < 3 then
+								    SetEntityCoords(vehicle, eco.x, eco.y, eco.z - GetEntityHeightAboveGround(ped), false, false, false, false)
+								    TriggerServerEvent(
+									    "bltk_anticheat:server:detection",
+									    "Fly checker",
+									    "This player tried to fly with vehicle.",
+									    true,
+									    true
+								    )
+							    end
 							end
 						end
 					end
@@ -797,7 +852,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 			RegisterNUICallback("devtoolOpening", function()
 				Wait(500)
 				TriggerServerEvent(
-					"bltkac_detection",
+					"bltk_anticheat:server:detection",
 					"Nui DevTools Detect",
 					"This player tried to use nui_devtools.",
 					ClientConfig.InjectKick,
@@ -807,7 +862,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 			RegisterNUICallback(GetCurrentResourceName(), function()
 				Wait(500)
 				TriggerServerEvent(
-					"bltkac_detection",
+					"bltk_anticheat:server:detection",
 					"Nui DevTools Detect",
 					"This player tried to use nui_devtools.",
 					ClientConfig.InjectKick,
@@ -820,10 +875,9 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 				Wait(5000)
 				if ClientConfig.PedChecks then
 					local PedFlag = GetPedConfigFlag(PlayerPedId(), 223, true)
-
 					if PedFlag then
 						TriggerServerEvent(
-							"bltkac_detection",
+							"bltk_anticheat:server:detection",
 							"Tiny Ped",
 							"This player tried to use a Tiny ped config flag.",
 							ClientConfig.PedKick,
@@ -838,7 +892,7 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 			if ClientConfig.EMD then
 				RegisterNetEvent("HCheat:TempDisableDetection", function()
 					TriggerServerEvent(
-						"bltkac_detection",
+						"bltk_anticheat:server:detection",
 						"EMD",
 						"This player tried to inject a lua menu. `Lynx Menu`",
 						ClientConfig.InjectKick,
@@ -849,31 +903,30 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 		end)
 
 		if ClientConfig.Teleport then
-			local tpflags = 0
 			CreateThread(function()
+				local tpflags = 0
 				while true do
 					local oped = PlayerPedId()
-					local ocoords = GetEntityCoords(PlayerPedId())
+					local ocoords = GetEntityCoords(oped)
 					Wait(3000)
 					local newped = PlayerPedId()
-					local newcoords = GetEntityCoords(PlayerPedId())
+					local newcoords = GetEntityCoords(newped)
 
 					local vehicleid = BltkGetVehiclesInArea(newcoords, 10) -- GOOD STUFF
 					local nearvehs = json.encode(vehicleid)
-					
-					local dtbtwocoord = #(vector3(ocoords) - vector3(newcoords))
+					local dtbtwocoord = #(ocoords - newcoords)
 					if
 						oped == newped
-						and not IsPedInAnyVehicle(PlayerPedId(), false)
+						and not IsPedInAnyVehicle(newped, false)
 						and dtbtwocoord > ClientConfig.TeleportDistance
-						and not IsPedInParachuteFreeFall(PlayerPedId())
+						and not IsPedInParachuteFreeFall(newped)
 						and nearvehs == "[]"
 					then
-						--SetEntityCoords(PlayerPedId(), ocoords.x, ocoords.y, ocoords.z)
-						tpflags = tpflags + 1
-						if tpflags > 4 then
+						--SetEntityCoords(PlayerPedId(), ocoords.x, ocoords.y, ocoords.z, false, false, false, false)
+						tpflags += 1
+						if tpflags > 5 then
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Teleport",
 								"This player tried to teleport 5 times. Teleport distance: `" .. dtbtwocoord .. "`",
 								ClientConfig.MenuCheckKick,
@@ -885,10 +938,10 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 			end)
 		end
 		if ClientConfig.AntiSpawn then
-            Citizen.CreateThread(function()
+            CreateThread(function()
                 while true do
-                    Citizen.Wait(3400)
-                    blacklistedentresources = {
+                    Wait(11400)
+                    local blacklistedentresources = {
                         ['chat'] = true,
                         ['spawnmanager'] = true,
                         ['sessionmanager'] = true,
@@ -897,46 +950,39 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
                         ['_cfx_internal'] = true,
                         ['mapmanager'] = true,
                         ['fivem-map-skater'] = true,
+                        ['scr_2'] = true,
                         ['fivem-map-hipster'] = true
                     }
 
                     for _, veh in pairs(GetGamePool("CVehicle")) do
                             if DoesEntityExist(veh) and GetPlayerServerId(NetworkGetEntityOwner(veh)) == GetPlayerServerId(PlayerId()) and GetEntityScript(veh) ~= nil then
                             local resource = GetEntityScript(veh)
-        
-                            if blacklistedentresources[resource] then                               
+                            if blacklistedentresources[resource] then
                                 SetEntityAsMissionEntity(veh, false, false)
                                 DeleteEntity(veh)
-                                TriggerServerEvent("bltkac_detection", "AntiSpawn Vehicle Spawn", "Vehicle spawned with an executor. Entity spawner resource: `"..resource.."`", ClientConfig.AntiSpawnKick, ClientConfig.AntiSpawnBan) 
-        
+                                TriggerServerEvent("bltk_anticheat:server:detection", "AntiSpawn Vehicle Spawn", "Vehicle spawned with an executor. Entity spawner resource: `"..resource.."`", ClientConfig.AntiSpawnKick, ClientConfig.AntiSpawnBan)
                             end
                             TriggerServerEvent("bltkac_antiloadfromshits", resource)
                         end
                     end
                     for _, ped in pairs(GetGamePool("CPed")) do
-                        if DoesEntityExist(ped) and NetworkGetEntityOwner(ped) == GetPlayerServerId(PlayerId()) and GetEntityScript(veh) ~= nil  then
+                        if DoesEntityExist(ped) and NetworkGetEntityOwner(ped) == GetPlayerServerId(PlayerId()) and GetEntityScript(ped) ~= nil then
                             local resource = GetEntityScript(ped)
-                            
-        
                             if blacklistedentresources[resource] then
                                 SetEntityAsMissionEntity(ped, false, false)
                                 DeleteEntity(ped)
-                                TriggerServerEvent("bltkac_detection", "AntiSpawn Ped Spawn", "Ped spawned with an executor. Entity spawner resource: `"..resource.."`", ClientConfig.AntiSpawnKick, ClientConfig.AntiSpawnBan) 
-        
+                                TriggerServerEvent("bltk_anticheat:server:detection", "AntiSpawn Ped Spawn", "Ped spawned with an executor. Entity spawner resource: `"..resource.."`", ClientConfig.AntiSpawnKick, ClientConfig.AntiSpawnBan)
                             end
                             TriggerServerEvent("bltkac_antiloadfromshits", resource)
                         end
                     end
-                    for _, ped in pairs(GetGamePool("CObject")) do
-                        if DoesEntityExist(prop) and NetworkGetEntityOwner(prop) == GetPlayerServerId(PlayerId()) and GetEntityScript(veh) ~= nil  then
+                    for _, prop in pairs(GetGamePool("CObject")) do
+                        if DoesEntityExist(prop) and NetworkGetEntityOwner(prop) == GetPlayerServerId(PlayerId()) and GetEntityScript(prop) ~= nil then
                             local resource = GetEntityScript(prop)
-                            
-        
                             if blacklistedentresources[resource] then
                                 SetEntityAsMissionEntity(prop, false, false)
                                 DeleteEntity(prop)
-                                TriggerServerEvent("bltkac_detection", "AntiSpawn Prop Spawn", "Prop spawned with an executor. Entity spawner resource: `"..resource.."`", ClientConfig.AntiSpawnKick, ClientConfig.AntiSpawnBan) 
-        
+                                TriggerServerEvent("bltk_anticheat:server:detection", "AntiSpawn Prop Spawn", "Prop spawned with an executor. Entity spawner resource: `"..resource.."`", ClientConfig.AntiSpawnKick, ClientConfig.AntiSpawnBan)
                             end
                             TriggerServerEvent("bltkac_antiloadfromshits", resource)
                         end
@@ -946,17 +992,32 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
         end
 		if ClientConfig.AntiVehicleCheats then
 			CreateThread(function()
+				V = nil
+				P = nil
 				while true do
+					Wait(5000)
 					if IsPedInAnyVehicle(PlayerPedId(), false) then
-						Wait(300)
 						local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-						if GetVehicleTopSpeedModifier(vehicle) > 1.0 then
-							SetEntityAsMissionEntity(vehicle)
+						if GetVehicleTopSpeedModifier(vehicle) > 200.5 then
+							local j = GetVehicleTopSpeedModifier(vehicle)
+							SetEntityAsMissionEntity(vehicle, false, false)
 							DeleteEntity(vehicle)
 							TriggerServerEvent(
-								"bltkac_detection",
+								"bltk_anticheat:server:detection",
 								"MenuCheck Vehicle Modifiers",
-								"This player tried to enable vehicle modifiers/vehicle cheats",
+								"This player tried to enable vehicle modifiers/vehicle cheats "..j,
+								ClientConfig.MenuCheckKick,
+								ClientConfig.MenuCheckBan
+							)
+						end
+						if GetVehicleCheatPowerIncrease(vehicle) > 10.0 then
+							local s = GetVehicleCheatPowerIncrease(vehicle)
+							SetEntityAsMissionEntity(vehicle, false, false)
+							DeleteEntity(vehicle)
+							TriggerServerEvent(
+								"bltk_anticheat:server:detection",
+								"MenuCheck Vehicle Modifiers",
+								"This player tried to enable vehicle modifiers/vehicle cheats "..s,
 								ClientConfig.MenuCheckKick,
 								ClientConfig.MenuCheckBan
 							)
@@ -966,8 +1027,63 @@ RegisterNetEvent("loadfullclient_68347623", function(config)
 					end
 				end
 			end)
+			if ClientConfig.AntiPlateChanger then
+				local ped = PlayerPedId()
+				if IsPedInAnyVehicle(ped, false) then
+					local vehicle = GetVehiclePedIsIn(ped, false)
+					local plate = GetVehicleNumberPlateText(vehicle)
+					if P ~= plate and V == vehicle then
+						SetEntityAsMissionEntity(vehicle, false, false)
+						DeleteEntity(vehicle)
+						TriggerServerEvent(
+							"bltk_anticheat:server:detection",
+							"MenuCheck Plate Changer",
+							"Changed the vehicle plate : **" .. P .. " --> " .. plate .. "**",
+							ClientConfig.MenuCheckKick,
+							ClientConfig.MenuCheckBan
+						)
+					end
+					P = plate
+					V = vehicle
+				else
+					P = nil
+					V = nil
+				end
+			end
+			if ClientConfig.BlacklistedCommand then
+				RegisterNetEvent('chatMessage', function(author, _, text)
+					if not author then return end
+					if not text then return end
+					if type(text) == "table" then return end
+					for _,v in pairs(ClientConfig.BlacklistedCommands) do
+						if string.match(string.lower(text), string.lower(v)) then
+							TriggerServerEvent(
+								"bltk_anticheat:server:detection",
+								"Blacklisted Command",
+								"This player tried to use blacklisted command",
+								ClientConfig.BlacklistedCommandKick,
+								ClientConfig.BlacklistedCommandBan
+							)
+						end
+					end
+				end)
+				RegisterNetEvent('chat:addMessage', function(message)
+					if not message then return end
+					if type(message) == "table" then return end
+					for _,v in pairs(ClientConfig.BlacklistedCommands) do
+						if string.match(string.lower(message), string.lower(v)) then
+							TriggerServerEvent(
+								"bltk_anticheat:server:detection",
+								"Blacklisted Command",
+								"This player tried to use blacklisted command",
+								ClientConfig.BlacklistedCommandKick,
+								ClientConfig.BlacklistedCommandBan
+							)
+						end
+					end
+				end)
+			end
 		end
-		
 	end
 end)
 
@@ -982,4 +1098,3 @@ RegisterNetEvent("bltkac-admin:screenshot:requested", function(sslink)
 		end
 	end)
 end)
-
