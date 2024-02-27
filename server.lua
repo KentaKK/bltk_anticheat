@@ -453,13 +453,12 @@ if ServerConfig.ChatController then
 end
 
 if ServerConfig.BlacklistedEventsSystem then
-	for _, events in pairs(ServerConfig.BlacklistedEvents) do
-		RegisterNetEvent(events)
-		AddEventHandler(events, function()
+	for i=1, #ServerConfig.BlacklistedEvents do
+		RegisterNetEvent(ServerConfig.BlacklistedEvents[i], function(source)
 			BLTKACDETECT(
 				source,
 				"Event Executor",
-				"This player tried to execute a blacklisted event.\n**Executed event:** `" .. events .. "`",
+				"This player tried to execute a blacklisted event.\n**Executed event:** `" .. ServerConfig.BlacklistedEvents[i] .. "`",
 				ServerConfig.BlacklistedEventKick,
 				ServerConfig.BlacklistedEventBan
 			)
