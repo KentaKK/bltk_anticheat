@@ -547,8 +547,6 @@ ServerConfig.BlacklistedEvents = {
 	"wyspa_jail:addKartoteka",
 	"advancedFuel:setEssence",
 	"esx_bikerjob:giveWeapon",
-	"esx_communityservice:finishCommunityService",
-	"esx_communityservice:completeService",
 	"esx_communityservice:sendToCommunityService",
 	"BsCuff:Cuff696DFWM999",
 	"veh_SR:CheckMonDFWMeyForVeh",
