@@ -866,6 +866,7 @@ end
 
 if ServerConfig.AntiNuke then
 	AddEventHandler("entityCreated", function(entity)
+		if not DoesEntityExist(entity) then return end
 		local entpop = GetEntityPopulationType(entity)
 		source = NetworkGetEntityOwner(entity)
 		if entpop == 6 or entpop == 7 then
